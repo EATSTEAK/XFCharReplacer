@@ -8,6 +8,7 @@ using XFCharReplacer.Format;
 using System.Text.Json;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 
 namespace XFCharReplacer
 {
@@ -42,17 +43,18 @@ namespace XFCharReplacer
             var index = 0;
             var tbl = new Dictionary<string, char>();
             var editedDicGlyphLarge = new Dictionary<char, XF.CharacterMap>();
+            var fontSize = 14;
             foreach (KeyValuePair<char, XF.CharacterMap> pair in xf.dicGlyphLarge)
             {
                 if(index >= notExists.Count)
                 {
                     break;
                 }
-                if (((int) pair.Key) >= 0x4E00 && !exists.ContainsKey(pair.Value.code_point) && xf.lstCharSizeInfoLarge[pair.Value.code_point].char_width >= 13 && xf.lstCharSizeInfoLarge[pair.Value.code_point].char_height >= 13)
+                if (((int) pair.Key) >= 0x4E00 && !exists.ContainsKey(pair.Value.code_point) && xf.lstCharSizeInfoLarge[pair.Value.code_point].char_width >= fontSize && xf.lstCharSizeInfoLarge[pair.Value.code_point].char_height >= fontSize)
                 {
                     tbl.Add(pair.Key + "", notExists[index]);
                     // TO-DO Replacing unused chars to non-exists chars.
-                    RectangleF rectf = new RectangleF(pair.Value.ImageOffsetX, pair.Value.ImageOffsetY, 13, 13);
+                    RectangleF rectf = new RectangleF(pair.Value.ImageOffsetX, pair.Value.ImageOffsetY, fontSize, fontSize);
                     Bitmap image = pair.Value.ColorChannel == 0 ? xf.image_0 : pair.Value.ColorChannel == 1 ? xf.image_1 : xf.image_2;
                     for(int xP=pair.Value.ImageOffsetX;xP< pair.Value.ImageOffsetX+xf.lstCharSizeInfoLarge[pair.Value.code_point].char_width;xP++)
                     {
@@ -68,13 +70,15 @@ namespace XFCharReplacer
                     g.PixelOffsetMode = PixelOffsetMode.HighQuality;
                     editedDicGlyphLarge.Add(pair.Key, new XF.CharacterMap
                     {
-                        char_size = (ushort)((149 & 0x3FF) | ((Convert.ToUInt16(13) & 0x3F) << 10)),
+                        char_size = (ushort)((149 & 0x3FF) | ((Convert.ToUInt16(fontSize) & 0x3F) << 10)),
                         code_point = pair.Value.code_point,
                         image_offset = pair.Value.image_offset
                     });
-                    xf.lstCharSizeInfoLarge[pair.Value.code_point].char_height = 13;
-                    xf.lstCharSizeInfoLarge[pair.Value.code_point].char_width = 13;
-                    g.DrawString(notExists[index] + "", new Font("NanumBarunGothic", 10), Brushes.White, rectf);
+                    xf.lstCharSizeInfoLarge[pair.Value.code_point].char_height = (byte) fontSize;
+                    xf.lstCharSizeInfoLarge[pair.Value.code_point].char_width = (byte) fontSize;
+                    xf.lstCharSizeInfoLarge[pair.Value.code_point].offset_x = 0;
+                    xf.lstCharSizeInfoLarge[pair.Value.code_point].offset_y = 0;
+                    g.DrawString(notExists[index] + "", new Font("NanumSquare", fontSize, FontStyle.Regular, GraphicsUnit.Pixel), Brushes.White, rectf);
                     g.Flush();
                     if (pair.Value.ColorChannel == 0)
                     {
@@ -88,6 +92,10 @@ namespace XFCharReplacer
                     }
                     index++;
                 }
+            }
+            if(index < notExists.Count)
+            {
+                Console.WriteLine("[WARNING] Some characters are not replaced correctly, Please change font size.");
             }
             foreach (KeyValuePair<char, XF.CharacterMap> newPair in editedDicGlyphLarge)
             {
